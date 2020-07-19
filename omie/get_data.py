@@ -7,10 +7,20 @@ import time
 from common import get_file_name, data_file_exists
 
 
-def fetch_day_of_data(**kwargs):
+wait_seconds = 10
+
+def fetch_day_of_data(requests_remaining=2, **kwargs):
     url = "https://www.omie.es/sites/default/files/dados/AGNO_{year}/MES_{month}/TXT/INT_D_PFM_DEM_1_{day}_{month}_{year}_{day}_{month}_{year}.TXT".format(**kwargs)
     print("Fetching url: {}".format(url))
     response = requests.get(url)
+    requests_remaining -= 1
+
+    if not response.ok and requests_remaining > 0:
+        print("Error " + response.status + " fetching url: " + url + "\nResponse text: " + response.text)
+        print("Waiting {} seconds before retrying.  {} retries left".format(wait_seconds, requests_remaining))
+        time.sleep(wait_seconds)
+        fetch_day_of_data(requests_remaining=requests_remaining, **kwargs)
+
     return response
 
 
@@ -35,7 +45,7 @@ def fetch_and_store_day_of_data(date, force_update=False):
         return False
 
     response = fetch_day_of_data(**date_kwargs)
-    # TODO check status code of response, if not 200 then warn & retry or error & skip/abort
+    response.raise_for_status()
 
     store_day_of_data(response, **date_kwargs)
     return True
@@ -46,12 +56,10 @@ def get_data(year):
     next_year = datetime(year + 1, 1, 1)
     one_day = timedelta(days=1)
 
-    wait_seconds = 10
-
     while date < next_year:
         queried_third_party = fetch_and_store_day_of_data(date)
         if queried_third_party:
-            print("Waiting {} seconds".format(wait_seconds))
+            print("Waiting {} seconds before next request.".format(wait_seconds))
             time.sleep(wait_seconds)
         date += one_day
 
