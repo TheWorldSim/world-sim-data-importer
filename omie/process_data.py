@@ -1,4 +1,6 @@
+import calendar
 import csv
+from datetime import datetime, timedelta
 import os
 import re
 import sys
@@ -52,7 +54,10 @@ def collect_data(date):
     date_string = "{year}-{month}-{day}".format(**date_kwargs)
 
     for hour_data in date_data:
-        data.append([date_string] + hour_data)
+        hour = hour_data[0]
+        dt = date + timedelta(hours=hour)
+        timestamp = calendar.timegm(dt.timetuple())
+        data.append([timestamp, date_string] + hour_data)
 
 
 def write_to_csv(output_file_name, data):
@@ -64,7 +69,7 @@ def write_to_csv(output_file_name, data):
 
 def process_data(year):
     global data
-    data = [["date", "hour", "Average final hourly price", "Energy (MWh)"]]
+    data = [["timestamp", "date", "hour", "average_final_hourly_price_Euros", "energy_(MWh)"]]
     loop_over_days(year, collect_data)
     write_to_csv("./data/aggregated.csv", data)
 
