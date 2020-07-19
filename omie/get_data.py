@@ -3,12 +3,13 @@ import requests
 import os
 import time
 
-from common import loop_over_days, get_file_name, data_file_exists
+from common import loop_over_days, date_to_dict, get_file_name, data_file_exists
 
 
 wait_seconds = 10
 
 def fetch_day_of_data(requests_remaining=2, **kwargs):
+    # URL from menu burger bars -> "Export to txt" on https://www.omie.es/en/market-results/daily/average-final-prices/spanish-demand?scope=daily&date=2019-12-01
     url = "https://www.omie.es/sites/default/files/dados/AGNO_{year}/MES_{month}/TXT/INT_D_PFM_DEM_1_{day}_{month}_{year}_{day}_{month}_{year}.TXT".format(**kwargs)
     print("Fetching url: {}".format(url))
     response = requests.get(url)
@@ -30,13 +31,7 @@ def store_day_of_data(response, **kwargs):
 
 
 def fetch_and_store_day_of_data(date, force_update=False):
-    month = str(date.month).zfill(2)
-    day = str(date.day).zfill(2)
-    date_kwargs = {
-        "year": date.year,
-        "month": month,
-        "day": day,
-    }
+    date_kwargs = date_to_dict(date)
 
     if not force_update and data_file_exists(**date_kwargs):
         print("skipping: {year}_{month}_{day}".format(**date_kwargs))

@@ -1,10 +1,72 @@
+import csv
 import os
+import re
+import sys
 
-from common import get_file_name, data_file_exists
+from common import loop_over_days, date_to_dict, get_file_name, data_file_exists
+
+data = []
+
+
+def read_file(file_name):
+    with open(file_name, "r") as f:
+        return f.read()
+
+
+def parse_lines_as_floats(text_line):
+    values = text_line.replace(",", ".").split(";")[1:-1]
+    float_values = [float(v.strip()) for v in values]
+    return float_values
+
+
+def parse_file_contents(file_contents):
+    prices = re.search("Precio horario final medio \(EUR/MWh\);[^\n]*", file_contents)[0]
+    energies = re.search("Energía \(MWh\);[^\n]*", file_contents)[0]
+    price_floats = parse_lines_as_floats(prices)
+    energy_floats = parse_lines_as_floats(energies)
+
+    date_data = []
+
+    for (i, price) in enumerate(price_floats):
+        hour = i + 1
+        energy = energy_floats[i]
+        date_data.append([hour, price, energy])
+
+    return date_data
+
+
+def collect_data(date):
+    global data
+    date_kwargs = date_to_dict(date)
+    file_name = get_file_name(**date_kwargs)
+
+    file_exists = data_file_exists(**date_kwargs)
+
+    if not file_exists:
+        print("Warning.  No data file at: " + file_name)
+        return
+
+    file_contents = read_file(file_name)
+    date_data = parse_file_contents(file_contents)
+
+    date_string = "{year}-{month}-{day}".format(**date_kwargs)
+
+    for hour_data in date_data:
+        data.append([date_string] + hour_data)
+
+
+def write_to_csv(output_file_name, data):
+    with open(output_file_name, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(data)
+    print("Wrote {} lines to {}".format(len(data), output_file_name))
 
 
 def process_data(year):
-    pass
+    global data
+    data = [["date", "hour", "Average final hourly price", "Energy (MWh)"]]
+    loop_over_days(year, collect_data)
+    write_to_csv("./data/aggregated.csv", data)
 
 
 def main():
