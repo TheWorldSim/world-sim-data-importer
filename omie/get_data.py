@@ -19,7 +19,7 @@ def fetch_day_of_data(requests_remaining=2, **kwargs):
         print("Error " + response.status + " fetching url: " + url + "\nResponse text: " + response.text)
         print("Waiting {} seconds before retrying.  {} retries left".format(wait_seconds, requests_remaining))
         time.sleep(wait_seconds)
-        fetch_day_of_data(requests_remaining=requests_remaining, **kwargs)
+        return fetch_day_of_data(requests_remaining=requests_remaining, **kwargs)
 
     return response
 
